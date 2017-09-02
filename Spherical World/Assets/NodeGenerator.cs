@@ -96,6 +96,8 @@ public class NodeGenerator : EditorWindow {
 	void DrawGroundSettings(){
 		GUILayout.BeginArea(GroundSection);
 
+		GUILayout.Label("Ground");
+
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.Label("Prefab");
 		prefabGround = (GameObject)EditorGUILayout.ObjectField(prefabGround, typeof(GameObject), false);
@@ -106,6 +108,8 @@ public class NodeGenerator : EditorWindow {
 
 	void DrawGrassSettings(){
 		GUILayout.BeginArea(GrassSection);
+
+		GUILayout.Label("Grass");
 
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.Label("Prefab");
@@ -124,6 +128,8 @@ public class NodeGenerator : EditorWindow {
 
 	void DrawMountainSettings(){
 		GUILayout.BeginArea(MountainSection);
+
+		GUILayout.Label("Mountain");
 
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.Label("Prefab");
@@ -190,6 +196,14 @@ public class NodeGeneralSettings : EditorWindow{
 			EditorGUILayout.HelpBox("some aspects are not filled",MessageType.Warning);
 		}
 		else if(GUILayout.Button("Generate!", GUILayout.Height(30))){
+			if(nodeParent != null){
+				DestroyImmediate(nodeParent);
+				foreach(GameObject node in eachNodes){
+					DestroyImmediate(node);
+				}
+				eachNodes.Clear();
+
+			}
 			RandomMapGenerator();
 		}
 
@@ -198,6 +212,7 @@ public class NodeGeneralSettings : EditorWindow{
 	Vector2 gridWorldSize;
 	float nodeDiameter;
 	GameObject nodeParent;
+	List<GameObject> eachNodes = new List<GameObject>();
 
 	void RandomMapGenerator(){
 		if(nodeParent == null){
@@ -219,6 +234,7 @@ public class NodeGeneralSettings : EditorWindow{
 					ground.transform.localScale = nodeDiameter * new Vector3(1,1,1);
 					ground.transform.parent = nodeParent.transform;
 					nodeObject[x,y] = ground;
+					eachNodes.Add(ground);
 				}
 				else if(probabilityGround < randomvalue 
 				&& randomvalue <= probabilityGround + probabilityGrass){
@@ -227,6 +243,7 @@ public class NodeGeneralSettings : EditorWindow{
 					grass.transform.localScale = nodeDiameter * new Vector3(1,1,1);
 					grass.transform.parent = nodeParent.transform;
 					nodeObject[x,y] = grass;
+					eachNodes.Add(grass);
 				}
 				else if(probabilityGround + probabilityGrass <randomvalue 
 				&& randomvalue <= 1){
@@ -235,6 +252,7 @@ public class NodeGeneralSettings : EditorWindow{
 					mountain.transform.localScale = nodeDiameter * new Vector3(1,1,1);
 					mountain.transform.parent = nodeParent.transform;
 					nodeObject[x,y] = mountain;
+					eachNodes.Add(mountain);
 				}
 
             }
