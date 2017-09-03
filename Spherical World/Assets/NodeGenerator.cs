@@ -206,6 +206,15 @@ public class NodeGeneralSettings : EditorWindow{
 			}
 			RandomMapGenerator();
 		}
+		if(eachNodes.Count != 0){
+			if(GUILayout.Button("Clear!",GUILayout.Height(30))){
+				DestroyImmediate(nodeParent);
+				foreach(GameObject node in eachNodes){
+					DestroyImmediate(node);
+				}
+				eachNodes.Clear();
+			}
+		}
 
 	}
 
