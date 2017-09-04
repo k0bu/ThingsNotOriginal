@@ -164,6 +164,7 @@ public class NodeGeneralSettings : EditorWindow{
 	float probabilityGround;
 	float probabilityGrass;
 	float probabilityMountain;
+	float outlinePercent;
 
 	void DrawSettings(){
 		EditorGUILayout.BeginHorizontal();
@@ -190,6 +191,11 @@ public class NodeGeneralSettings : EditorWindow{
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.Label("probabilityMountain");
 		probabilityMountain = EditorGUILayout.Slider(probabilityMountain,0,1 - probabilityGrass - probabilityGround);
+		EditorGUILayout.EndHorizontal();
+
+		EditorGUILayout.BeginHorizontal();
+		GUILayout.Label("outlinePercent");
+		outlinePercent = EditorGUILayout.Slider(outlinePercent,0,1);
 		EditorGUILayout.EndHorizontal();				
 
 		if(gridWorldSize.x == 0 || nodeDiameter == 0 || probabilityGround == 0){
@@ -230,7 +236,7 @@ public class NodeGeneralSettings : EditorWindow{
 		float nodeRadius = nodeDiameter / 2;
         int gridSizeX = Mathf.RoundToInt(gridWorldSize.x / nodeDiameter);
         int gridSizeY = Mathf.RoundToInt(gridWorldSize.y / nodeDiameter);
-		GameObject[,] nodeObject = new GameObject[gridSizeX,gridSizeY];
+//		GameObject[,] nodeObject = new GameObject[gridSizeX,gridSizeY];
 		Vector3 worldBottomLeft = new Vector3(0,0,0) - Vector3.right * gridWorldSize.x / 2 - Vector3.forward * gridWorldSize.y / 2;
 		for (int x = 0; x < gridSizeX; x++)
         {
@@ -239,28 +245,28 @@ public class NodeGeneralSettings : EditorWindow{
 				float randomvalue = Random.value;
 				if(randomvalue <= probabilityGround){
                		Vector3 node_pos = worldBottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (y * nodeDiameter + nodeRadius);
-                	GameObject ground = Instantiate(prefabGround, node_pos, Quaternion.identity);
-					ground.transform.localScale = nodeDiameter * new Vector3(1,1,1);
+                	GameObject ground = Instantiate(prefabGround, node_pos, Quaternion.Euler(Vector3.right * 90));
+					ground.transform.localScale = nodeDiameter * (1 - outlinePercent) * new Vector3(1,1,1);
 					ground.transform.parent = nodeParent.transform;
-					nodeObject[x,y] = ground;
+//					nodeObject[x,y] = ground;
 					eachNodes.Add(ground);
 				}
 				else if(probabilityGround < randomvalue 
 				&& randomvalue <= probabilityGround + probabilityGrass){
                 	Vector3 node_pos = worldBottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (y * nodeDiameter + nodeRadius);
-                	GameObject grass = Instantiate(prefabGrass, node_pos, Quaternion.identity);
-					grass.transform.localScale = nodeDiameter * new Vector3(1,1,1);
+                	GameObject grass = Instantiate(prefabGrass, node_pos, Quaternion.Euler(Vector3.right * 90));
+					grass.transform.localScale = nodeDiameter * (1 - outlinePercent) * new Vector3(1,1,1);
 					grass.transform.parent = nodeParent.transform;
-					nodeObject[x,y] = grass;
+//					nodeObject[x,y] = grass;
 					eachNodes.Add(grass);
 				}
 				else if(probabilityGround + probabilityGrass <randomvalue 
 				&& randomvalue <= 1){
                 	Vector3 node_pos = worldBottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (y * nodeDiameter + nodeRadius);
-                	GameObject mountain = Instantiate(prefabMountain, node_pos, Quaternion.identity);
-					mountain.transform.localScale = nodeDiameter * new Vector3(1,1,1);
+                	GameObject mountain = Instantiate(prefabMountain, node_pos, Quaternion.Euler(Vector3.right * 90));
+					mountain.transform.localScale = nodeDiameter * (1 - outlinePercent) * new Vector3(1,1,1);
 					mountain.transform.parent = nodeParent.transform;
-					nodeObject[x,y] = mountain;
+//					nodeObject[x,y] = mountain;
 					eachNodes.Add(mountain);
 				}
 
