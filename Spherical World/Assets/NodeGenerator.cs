@@ -7,7 +7,7 @@ public class NodeGenerator : EditorWindow {
 
 ///<summary>
 ///It would be nice to automatically determine if the dedicated
-///prefab is Cube or not
+///prefab is Quad or not
 ///</summary>
 
 	Texture2D headerSectionTexture;
@@ -180,13 +180,13 @@ public class NodeGeneralSettings : EditorWindow{
 	void DrawSettings(){
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.Label("gridWorldSize");
-		gridWorldSize.x = EditorGUILayout.IntSlider((int)gridWorldSize.x,0,100);
+		gridWorldSize.x = EditorGUILayout.IntSlider((int)gridWorldSize.x,1,100);
 		gridWorldSize.y = gridWorldSize.x;
 		EditorGUILayout.EndHorizontal();
 		
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.Label("nodeDiameter");
-		nodeDiameter = EditorGUILayout.IntSlider((int)nodeDiameter,0,(int)gridWorldSize.x);
+		nodeDiameter = EditorGUILayout.IntSlider(nodeDiameter,1,(int)gridWorldSize.x);
 		EditorGUILayout.EndHorizontal();
 
 		EditorGUILayout.BeginHorizontal();
@@ -212,7 +212,12 @@ public class NodeGeneralSettings : EditorWindow{
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.Label("seed");
 		seed = EditorGUILayout.IntField(seed);
-		EditorGUILayout.EndHorizontal();					
+		EditorGUILayout.EndHorizontal();
+
+		EditorGUILayout.BeginHorizontal();
+		GUILayout.Label("obstaclNumber");
+		obstacleNumber = EditorGUILayout.IntSlider(obstacleNumber,0,(int)gridWorldSize.x / nodeDiameter * (int)gridWorldSize.y / nodeDiameter);
+		EditorGUILayout.EndHorizontal();				
 
 		if(gridWorldSize.x == 0 || nodeDiameter == 0 || probabilityGround == 0){
 			EditorGUILayout.HelpBox("some aspects are not filled",MessageType.Warning);
@@ -241,11 +246,12 @@ public class NodeGeneralSettings : EditorWindow{
 	}
 
 	Vector2 gridWorldSize;
-	float nodeDiameter;
+	int nodeDiameter;
 	GameObject nodeParent;
 	List<GameObject> eachNodes = new List<GameObject>();
 	List<Coord> allNodeCoords;
 	Queue<Coord> shuffledNodeCodes;
+	int obstacleNumber = 10;
 
 	void RandomMapGenerator(){
 		if(nodeParent == null){
@@ -303,9 +309,7 @@ public class NodeGeneralSettings : EditorWindow{
             }
         }
 
-		int obstacleCount = 10;
-
-		for (int i = 0; i < obstacleCount; i++){
+		for (int i = 0; i < obstacleNumber; i++){
 			Coord randomCoord = GetRandomCoord();
 			Vector3 obstaclePosition = worldBottomLeft + Vector3.right * (randomCoord.x * nodeDiameter + nodeRadius) + Vector3.forward * (randomCoord.y * nodeDiameter + nodeRadius);
 			GameObject newObstacle = Instantiate(prefabObstacle, obstaclePosition + Vector3.up * .5f, Quaternion.identity);
