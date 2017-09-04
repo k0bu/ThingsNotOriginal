@@ -26,6 +26,7 @@ public class NodeGenerator : EditorWindow {
 	GameObject prefabGround;
 	GameObject prefabGrass;
 	GameObject prefabMountain;
+	GameObject prefabObstacle;
 //
 
 	[MenuItem("Window/Node Generator")]
@@ -116,11 +117,18 @@ public class NodeGenerator : EditorWindow {
 		prefabGrass = (GameObject)EditorGUILayout.ObjectField(prefabGrass, typeof(GameObject), false);
 		EditorGUILayout.EndHorizontal();
 
-		if(prefabGround == null || prefabGrass == null || prefabMountain == null){
+			GUILayout.Label("Obstacle");
+
+			EditorGUILayout.BeginHorizontal();
+			GUILayout.Label("Prefab");
+			prefabObstacle = (GameObject)EditorGUILayout.ObjectField(prefabObstacle, typeof(GameObject), false);
+			EditorGUILayout.EndHorizontal();
+
+		if(prefabGround == null || prefabGrass == null || prefabMountain == null || prefabObstacle == null){
 			EditorGUILayout.HelpBox("needs [Prefab] selected",MessageType.Warning);
 		}
 		else if(GUILayout.Button("Move to next", GUILayout.Height(30))){
-			NodeGeneralSettings.OpenWindow(prefabGround,prefabGrass,prefabMountain);
+			NodeGeneralSettings.OpenWindow(prefabGround,prefabGrass,prefabMountain,prefabObstacle);
 		}
 
 		GUILayout.EndArea();
@@ -145,13 +153,15 @@ public class NodeGeneralSettings : EditorWindow{
 	static GameObject prefabGround;
 	static GameObject prefabGrass;
 	static GameObject prefabMountain;
+	static GameObject prefabObstacle;
 //
 	static NodeGeneralSettings window;
 
-	public static void OpenWindow(GameObject Ground,GameObject Grass,GameObject Mountain){
+	public static void OpenWindow(GameObject Ground,GameObject Grass,GameObject Mountain, GameObject obstacle){
 		prefabGround = Ground;
 		prefabGrass = Grass;
 		prefabMountain = Mountain;
+		prefabObstacle = obstacle;
 		window = (NodeGeneralSettings)GetWindow(typeof(NodeGeneralSettings));
 		window.minSize = new Vector2(250,200);
 		window.Show();
@@ -165,17 +175,18 @@ public class NodeGeneralSettings : EditorWindow{
 	float probabilityGrass;
 	float probabilityMountain;
 	float outlinePercent;
+	int seed;
 
 	void DrawSettings(){
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.Label("gridWorldSize");
-		gridWorldSize.x = EditorGUILayout.Slider(gridWorldSize.x,0,100);
+		gridWorldSize.x = EditorGUILayout.IntSlider((int)gridWorldSize.x,0,100);
 		gridWorldSize.y = gridWorldSize.x;
 		EditorGUILayout.EndHorizontal();
 		
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.Label("nodeDiameter");
-		nodeDiameter = EditorGUILayout.Slider(nodeDiameter,0,gridWorldSize.x);
+		nodeDiameter = EditorGUILayout.IntSlider((int)nodeDiameter,0,(int)gridWorldSize.x);
 		EditorGUILayout.EndHorizontal();
 
 		EditorGUILayout.BeginHorizontal();
@@ -196,7 +207,12 @@ public class NodeGeneralSettings : EditorWindow{
 		EditorGUILayout.BeginHorizontal();
 		GUILayout.Label("outlinePercent");
 		outlinePercent = EditorGUILayout.Slider(outlinePercent,0,1);
-		EditorGUILayout.EndHorizontal();				
+		EditorGUILayout.EndHorizontal();	
+
+		EditorGUILayout.BeginHorizontal();
+		GUILayout.Label("seed");
+		seed = EditorGUILayout.IntField(seed);
+		EditorGUILayout.EndHorizontal();					
 
 		if(gridWorldSize.x == 0 || nodeDiameter == 0 || probabilityGround == 0){
 			EditorGUILayout.HelpBox("some aspects are not filled",MessageType.Warning);
@@ -228,16 +244,30 @@ public class NodeGeneralSettings : EditorWindow{
 	float nodeDiameter;
 	GameObject nodeParent;
 	List<GameObject> eachNodes = new List<GameObject>();
+	List<Coord> allNodeCoords;
+	Queue<Coord> shuffledNodeCodes;
 
 	void RandomMapGenerator(){
 		if(nodeParent == null){
 			nodeParent = new GameObject();
 		}
+
 		float nodeRadius = nodeDiameter / 2;
         int gridSizeX = Mathf.RoundToInt(gridWorldSize.x / nodeDiameter);
         int gridSizeY = Mathf.RoundToInt(gridWorldSize.y / nodeDiameter);
 //		GameObject[,] nodeObject = new GameObject[gridSizeX,gridSizeY];
+		
+		allNodeCoords = new List<Coord> ();
+		for (int x = 0; x < gridSizeX; x ++) {
+			for (int y = 0; y < gridSizeY; y ++) {
+				allNodeCoords.Add(new Coord(x,y));
+			}
+		}
+
+		shuffledNodeCodes = new Queue<Coord> (FisherYatesShuffle.ShuffleArray (allNodeCoords.ToArray (), seed));
+		
 		Vector3 worldBottomLeft = new Vector3(0,0,0) - Vector3.right * gridWorldSize.x / 2 - Vector3.forward * gridWorldSize.y / 2;
+		
 		for (int x = 0; x < gridSizeX; x++)
         {
             for (int y = 0; y < gridSizeY; y++)
@@ -273,7 +303,34 @@ public class NodeGeneralSettings : EditorWindow{
             }
         }
 
+		int obstacleCount = 10;
+
+		for (int i = 0; i < obstacleCount; i++){
+			Coord randomCoord = GetRandomCoord();
+			Vector3 obstaclePosition = worldBottomLeft + Vector3.right * (randomCoord.x * nodeDiameter + nodeRadius) + Vector3.forward * (randomCoord.y * nodeDiameter + nodeRadius);
+			GameObject newObstacle = Instantiate(prefabObstacle, obstaclePosition + Vector3.up * .5f, Quaternion.identity);
+			newObstacle.transform.localScale = nodeDiameter * (1 - outlinePercent) * new Vector3(1,1,1);
+			newObstacle.transform.parent = nodeParent.transform;
+			eachNodes.Add(newObstacle);
+		}
+
 	}
 
+	public Coord GetRandomCoord(){
+		Coord randomCoord = shuffledNodeCodes.Dequeue();
+		shuffledNodeCodes.Enqueue(randomCoord);
+		return randomCoord;
+	}
+
+
+	public struct Coord {
+		public int x;
+		public int y;
+
+		public Coord(int _x, int _y){
+			x = _x;
+			y = _y;
+		}
+	}
 
 }
