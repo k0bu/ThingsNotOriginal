@@ -215,8 +215,8 @@ public class NodeGeneralSettings : EditorWindow{
 		EditorGUILayout.EndHorizontal();
 
 		EditorGUILayout.BeginHorizontal();
-		GUILayout.Label("obstaclNumber");
-		obstacleNumber = EditorGUILayout.IntSlider(obstacleNumber,0,(int)gridWorldSize.x / nodeDiameter * (int)gridWorldSize.y / nodeDiameter);
+		GUILayout.Label("obstaclPercent");
+		obstaclePercent = EditorGUILayout.Slider(obstaclePercent,0,1);
 		EditorGUILayout.EndHorizontal();				
 
 		if(gridWorldSize.x == 0 || nodeDiameter == 0 || probabilityGround == 0){
@@ -249,9 +249,13 @@ public class NodeGeneralSettings : EditorWindow{
 	int nodeDiameter;
 	GameObject nodeParent;
 	List<GameObject> eachNodes = new List<GameObject>();
-	List<Coord> allNodeCoords;
-	Queue<Coord> shuffledNodeCodes;
-	int obstacleNumber = 10;
+	List<Cord> allNodeCords;
+	Queue<Cord> shuffledNodeCodes;
+	int obstacleNumber;
+	float obstaclePercent;
+	Cord mapCentre;
+	int gridSizeX;
+	int gridSizeY;
 
 	void RandomMapGenerator(){
 		if(nodeParent == null){
@@ -259,19 +263,21 @@ public class NodeGeneralSettings : EditorWindow{
 		}
 
 		float nodeRadius = nodeDiameter / 2;
-        int gridSizeX = Mathf.RoundToInt(gridWorldSize.x / nodeDiameter);
-        int gridSizeY = Mathf.RoundToInt(gridWorldSize.y / nodeDiameter);
+        gridSizeX = Mathf.RoundToInt(gridWorldSize.x / nodeDiameter);
+        gridSizeY = Mathf.RoundToInt(gridWorldSize.y / nodeDiameter);
+		obstacleNumber = (int)(gridSizeX * gridSizeY * obstaclePercent);//
 //		GameObject[,] nodeObject = new GameObject[gridSizeX,gridSizeY];
 		
-		allNodeCoords = new List<Coord> ();
+		allNodeCords = new List<Cord> ();
 		for (int x = 0; x < gridSizeX; x ++) {
 			for (int y = 0; y < gridSizeY; y ++) {
-				allNodeCoords.Add(new Coord(x,y));
+				allNodeCords.Add(new Cord(x,y));
 			}
 		}
 
-		shuffledNodeCodes = new Queue<Coord> (FisherYatesShuffle.ShuffleArray (allNodeCoords.ToArray (), seed));
-		
+		shuffledNodeCodes = new Queue<Cord> (FisherYatesShuffle.ShuffleArray (allNodeCords.ToArray (), seed));
+		mapCentre = new Cord (gridSizeX / 2, gridSizeY / 2);
+
 		Vector3 worldBottomLeft = new Vector3(0,0,0) - Vector3.right * gridWorldSize.x / 2 - Vector3.forward * gridWorldSize.y / 2;
 		
 		for (int x = 0; x < gridSizeX; x++)
@@ -309,31 +315,83 @@ public class NodeGeneralSettings : EditorWindow{
             }
         }
 
+
+		bool [,] obstacleMap = new bool [gridSizeX,gridSizeY];
+		int currentObstacleCount = 0;
+
 		for (int i = 0; i < obstacleNumber; i++){
-			Coord randomCoord = GetRandomCoord();
-			Vector3 obstaclePosition = worldBottomLeft + Vector3.right * (randomCoord.x * nodeDiameter + nodeRadius) + Vector3.forward * (randomCoord.y * nodeDiameter + nodeRadius);
-			GameObject newObstacle = Instantiate(prefabObstacle, obstaclePosition + Vector3.up * .5f, Quaternion.identity);
-			newObstacle.transform.localScale = nodeDiameter * (1 - outlinePercent) * new Vector3(1,1,1);
-			newObstacle.transform.parent = nodeParent.transform;
-			eachNodes.Add(newObstacle);
+			Cord randomCord = GetRandomCord();
+			obstacleMap[randomCord.x,randomCord.y] = true;
+			currentObstacleCount ++;		
+
+			if (randomCord != mapCentre && MapIsFullyAccessible(obstacleMap, currentObstacleCount)){
+				Vector3 obstaclePosition = worldBottomLeft + Vector3.right * (randomCord.x * nodeDiameter + nodeRadius) + Vector3.forward * (randomCord.y * nodeDiameter + nodeRadius);
+				GameObject newObstacle = Instantiate(prefabObstacle, obstaclePosition + Vector3.up * .5f, Quaternion.identity);
+				newObstacle.transform.localScale = nodeDiameter * (1 - outlinePercent) * new Vector3(1,1,1);
+				newObstacle.transform.parent = nodeParent.transform;
+				eachNodes.Add(newObstacle);
+			}
+			else{
+				obstacleMap[randomCord.x,randomCord.y] = false;
+				currentObstacleCount --;
+			}
 		}
 
 	}
 
-	public Coord GetRandomCoord(){
-		Coord randomCoord = shuffledNodeCodes.Dequeue();
-		shuffledNodeCodes.Enqueue(randomCoord);
-		return randomCoord;
+	public Cord GetRandomCord(){
+		Cord randomCord = shuffledNodeCodes.Dequeue();
+		shuffledNodeCodes.Enqueue(randomCord);
+		return randomCord;
 	}
 
+	bool MapIsFullyAccessible(bool[,] obstacleMap, int currentObstacleCount) {
+		bool[,] mapFlags = new bool[obstacleMap.GetLength(0),obstacleMap.GetLength(1)];
+		Queue<Cord> queue = new Queue<Cord> ();
+		queue.Enqueue (mapCentre);
+		mapFlags [mapCentre.x, mapCentre.y] = true;
 
-	public struct Coord {
+		int accessibleTileCount = 1;
+
+		while (queue.Count > 0) {
+			Cord tile = queue.Dequeue();
+
+			for (int x = -1; x <= 1; x ++) {
+				for (int y = -1; y <= 1; y ++) {
+					int neighbourX = tile.x + x;
+					int neighbourY = tile.y + y;
+					if (x == 0 || y == 0) {
+						if (neighbourX >= 0 && neighbourX < obstacleMap.GetLength(0) && neighbourY >= 0 && neighbourY < obstacleMap.GetLength(1)) {
+							if (!mapFlags[neighbourX,neighbourY] && !obstacleMap[neighbourX,neighbourY]) {
+								mapFlags[neighbourX,neighbourY] = true;
+								queue.Enqueue(new Cord(neighbourX,neighbourY));
+								accessibleTileCount ++;
+							}
+						}
+					}
+				}
+			}
+		}
+
+	int targetAccessibleTileCount = gridSizeX * gridSizeY - currentObstacleCount;
+	return targetAccessibleTileCount == accessibleTileCount;
+	}
+
+	public struct Cord {
 		public int x;
 		public int y;
 
-		public Coord(int _x, int _y){
+		public Cord(int _x, int _y){
 			x = _x;
 			y = _y;
+		}
+
+		public static bool operator == (Cord c1, Cord c2){
+			return c1.x == c2.x && c1.y == c2.y;
+		}
+
+		public static bool operator != (Cord c1, Cord c2){
+			return !(c1 == c2);
 		}
 	}
 
