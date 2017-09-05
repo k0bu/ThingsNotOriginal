@@ -326,7 +326,7 @@ public class NodeGeneralSettings : EditorWindow{
 
 			if (randomCord != mapCentre && MapIsFullyAccessible(obstacleMap, currentObstacleCount)){
 				Vector3 obstaclePosition = worldBottomLeft + Vector3.right * (randomCord.x * nodeDiameter + nodeRadius) + Vector3.forward * (randomCord.y * nodeDiameter + nodeRadius);
-				GameObject newObstacle = Instantiate(prefabObstacle, obstaclePosition + Vector3.up * .5f, Quaternion.identity);
+				GameObject newObstacle = Instantiate(prefabObstacle, obstaclePosition + Vector3.up * nodeRadius, Quaternion.identity);
 				newObstacle.transform.localScale = nodeDiameter * (1 - outlinePercent) * new Vector3(1,1,1);
 				newObstacle.transform.parent = nodeParent.transform;
 				eachNodes.Add(newObstacle);
